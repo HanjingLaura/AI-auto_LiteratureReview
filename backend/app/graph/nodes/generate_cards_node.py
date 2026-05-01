@@ -37,7 +37,15 @@ def generate_cards_node(state: ResearchState):
                 model=LLMConfig.MODEL_NAME,
                 response_model=PaperCard,
                 messages=[
-                    {"role": "system", "content": "你是一个资深科研助手。请严格根据提供的标题和摘要提取核心信息。"},
+                    {
+                        "role": "system",
+                        "content": (
+                            "你是一个资深科研助手。请严格根据提供的标题和摘要提取核心信息。"
+                            "除论文元数据外，所有输出请使用中文。"
+                            "论文元数据包括：title、作者名、arXiv ID、数据集/基准名称、模型专有名词，"
+                            "这些内容保持原文，不要翻译。"
+                        ),
+                    },
                     {"role": "user", "content": f"标题: {paper['title']}\n摘要: {paper['summary']}"}
                 ]
             )

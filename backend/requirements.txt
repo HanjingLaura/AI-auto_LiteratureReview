@@ -5,3 +5,5 @@ openai==2.33.0
 pydantic==2.13.3
 python-dotenv==1.2.2
 IPython==9.13.0
+graphviz==0.21
+pygraphviz==1.14
