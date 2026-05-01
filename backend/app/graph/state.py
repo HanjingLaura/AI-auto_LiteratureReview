@@ -57,7 +57,6 @@ class ResearchState(TypedDict):
     # 聚类与对比分析产物
     taxonomy_md: str # 对应 taxonomy.md 的内容
     comparison_table_csv: str # 对应 comparison_table.csv 的内容
-    analysis_summary: str # 学术评价/趋势总结
 
     # 最终产出综述摘要
     weekly_digest: str # 对应 weekly_digest.md 的内容

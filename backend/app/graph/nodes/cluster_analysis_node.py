@@ -7,7 +7,6 @@ from app.graph.state import ResearchState, LLMConfig
 class ClusterAnalysisResult(BaseModel):
     taxonomy_markdown: str = Field(...,description="基于所有论文生成的 Markdown 格式分类体系，需包含大类定义及对应的论文标题。")
     comparison_csv: str = Field(..., description="""标准 CSV 格式字符串。表头必须严格按照以下顺序：Title, Method, Complexity, Scenarios, Pros_and_Cons, Is_Data_Driven""")
-    analysis_summary: str = Field(..., description="对当前研究领域技术路线的简要学术评价（约 200 字）。")
 
 # 聚类分析节点
 def cluster_analysis_node(state: ResearchState):
@@ -76,7 +75,6 @@ def cluster_analysis_node(state: ResearchState):
         return {
             "taxonomy_md": response.taxonomy_markdown,
             "comparison_table_csv": response.comparison_csv,
-            "analysis_summary": response.analysis_summary,
             "current_status": f"分类体系与方法对比表已生成，共分析 {len(cards)} 篇论文"
         }
 

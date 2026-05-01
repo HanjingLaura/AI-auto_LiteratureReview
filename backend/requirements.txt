@@ -1,0 +1,7 @@
+arxiv==3.0.0
+instructor==1.15.1
+langgraph==1.1.10
+openai==2.33.0
+pydantic==2.13.3
+python-dotenv==1.2.2
+IPython==9.13.0

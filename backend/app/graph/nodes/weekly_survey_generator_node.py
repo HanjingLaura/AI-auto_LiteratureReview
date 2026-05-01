@@ -9,38 +9,44 @@ def weekly_survey_generator_node(state: ResearchState):
     """
     taxonomy = state.get("taxonomy_md", "暂无分类数据")
     csv_data = state.get("comparison_table_csv", "暂无对比数据")
-    analysis_summary = state.get("analysis_summary", "")
     cards = state.get("paper_cards", [])
 
-    # 初始化客户端
-    client = instructor.from_openai(OpenAI(
-        base_url=LLMConfig.BASE_URL,
-        api_key=LLMConfig.API_KEY
-    ))
-
     try:
-        # LLM 生成趋势分析与原创见解
+        # 基于分类体系、对比表和卡片直接生成综述，不再依赖中间 summary 字段
+        client = instructor.from_openai(OpenAI(
+            base_url=LLMConfig.BASE_URL,
+            api_key=LLMConfig.API_KEY
+        ))
+
         insight_response = client.chat.completions.create(
             model=LLMConfig.MODEL_NAME,
             messages=[
                 {
-                    "role": "system", 
-                    "content": "你是一位拥有前瞻性视野的首席科学家，擅长从琐碎的研究中发现宏观趋势和尚未解决的深层矛盾。"
+                    "role": "system",
+                    "content": "你是一位严谨的文献综述撰写者，擅长从分类体系、方法对比和论文卡片中提炼趋势、空白与未来方向。"
                 },
                 {
-                    "role": "user", 
-                    "content": f"""基于以下论文分析总结：
-                    {analysis_summary}
-                    
-                    请完成以下两项深度分析：
-                    1. 研究趋势分析：总结当前技术演进的路径（从 A 到 B 的转变）。
-                    2. 研究空白与未来方向：找出当前文献中被忽视的角落，并提出至少两个具有挑战性的原创研究设想。
-                    
-                    要求：观点深刻，避免套话，体现学术前沿性。"""
+                    "role": "user",
+                    "content": f"""请基于以下三部分材料撰写综述中的‘研究趋势分析’与‘研究空白与未来方向’两部分：
+
+1. 分类体系（Taxonomy）
+{taxonomy}
+
+2. 方法对比表（CSV）
+{csv_data}
+
+3. 论文卡片摘要
+{cards}
+
+要求：
+1. 先总结当前研究路线的总体演进趋势，明确从什么到什么的变化。
+2. 再指出至少两个明确的研究空白，并提出具有可执行性的原创方向。
+3. 风格要像正式课程作业中的学术综述，避免空泛套话。
+4. 输出内容请按‘趋势分析’和‘未来方向’两个小节组织。"""
                 }
             ]
         )
-        insights = insight_response.choices[0].message.content
+        insights = insight_response.choices[0].message.content or ""
 
         # 组装最终 Markdown
         current_date = datetime.now().strftime("%Y-%m-%d")
@@ -74,13 +80,13 @@ def weekly_survey_generator_node(state: ResearchState):
                         ---
 
                         ## 3. 研究趋势分析 (Research Trends)
-                        {insights.split('2.')[0] if '2.' in insights else insights}
+                        {insights.split('未来方向')[0] if '未来方向' in insights else insights}
 
                         ---
 
                         ## 4. 研究空白与未来方向 (Gaps & Future Directions)
                         > **核心原创观点**
-                        {insights.split('2.')[1] if '2.' in insights else "（详见下文趋势推演）"}
+                        {insights.split('未来方向')[-1] if '未来方向' in insights else "（详见上文趋势推演）"}
 
                         ---
 

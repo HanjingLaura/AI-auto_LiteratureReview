@@ -4,6 +4,7 @@ from app.graph.nodes.fetch_arxiv_node import fetch_arxiv_node
 from app.graph.nodes.generate_cards_node import generate_cards_node
 from app.graph.nodes.cluster_analysis_node import cluster_analysis_node
 from app.graph.nodes.weekly_survey_generator_node import weekly_survey_generator_node
+from IPython.display import Image, display
 
 # 检查是否还有未处理的 raw_papers
 def should_continue_parsing(state: ResearchState):
@@ -44,3 +45,21 @@ workflow.add_edge("generate_survey", END)
 
 # 编译应用
 app = workflow.compile()
+
+# 使用Graphviz 渲染
+def display_workflow_graph():
+    """在 Notebook 中渲染当前 LangGraph 工作流。
+
+    优先使用 Graphviz 生成 PNG；如果失败，则回退到 Mermaid 文本。
+    """
+    graph = app.get_graph(xray=True)
+
+    try:
+        png_bytes = graph.draw_png()
+        from IPython.display import Image, display
+
+        display(Image(data=png_bytes))
+    except Exception as e:
+        print(f"Graphviz 渲染失败: {e}")
+        print("\n使用 Mermaid 文本方式显示（复制到 Mermaid 编辑器查看）：\n")
+        print(graph.draw_mermaid())
