@@ -1,50 +1,52 @@
 import instructor
 from openai import OpenAI
-from app.graph.state import ResearchState, PaperCard
-from dotenv import load_dotenv
-import os
+from app.graph.state import ResearchState, PaperCard, LLMConfig
 
-load_dotenv()  
-API_KEY = os.getenv("API_KEY")
-BASE_URL = os.getenv("BASE_URL")
-
+# 生成论文卡片节点
 def generate_cards_node(state: ResearchState):
     """
     LLM 解析生成论文卡片节点：利用 Pydantic 模型强制结构化输出
     """
-    # 找出还没处理过的论文
+    # 找出已抓取但尚未生成卡片的论文
     processed_titles = {c.title for c in state.get("paper_cards", [])}
     to_process = [p for p in state["raw_papers"] if p['title'] not in processed_titles]
 
+    # 如果没有需要处理的论文，直接更新状态返回
     if not to_process:
-        return {"current_status": "所有抓取的论文已解析完成"}
+        return {
+            "current_status": "所有论文已完成结构化解析",
+            "paper_cards": [] 
+        }
 
-    # 初始化客户端，配置LLM
+    # 初始化客户端
     client = instructor.from_openai(OpenAI(
-        base_url=BASE_URL,
-        api_key=API_KEY
+        base_url=LLMConfig.BASE_URL,
+        api_key=LLMConfig.API_KEY
     ))
 
     new_cards = []
     
-    # 遍历解析
-    for paper in to_process[:3]:
+    # 分批处理论文
+    batch = to_process[:5] 
+    remaining_count = len(to_process) - len(batch)
+    
+    for paper in batch:
         try:
-            # response_model 直接传入你的 PaperCard 类
+            # 利用 instructor 强制要求 LLM 输出符合 PaperCard 定义的 JSON 格式
             card = client.chat.completions.create(
-                model="qwen-plus",
+                model=LLMConfig.MODEL_NAME,
                 response_model=PaperCard,
                 messages=[
-                    {"role": "system", "content": "你是一个严谨的科研助手。请根据标题和摘要提取核心信息。"},
+                    {"role": "system", "content": "你是一个资深科研助手。请严格根据提供的标题和摘要提取核心信息。"},
                     {"role": "user", "content": f"标题: {paper['title']}\n摘要: {paper['summary']}"}
                 ]
             )
             new_cards.append(card)
         except Exception as e:
             # 抛出并记录异常
-            state["error_log"].append(f"解析论文《{paper['title']}》时出错: {str(e)}")
+            return {"error_log": [f"解析论文《{paper['title']}》失败: {str(e)}"]}
 
     return {
         "paper_cards": new_cards,
-        "current_status": f"深度解析完成，本次生成了 {len(new_cards)} 张研究卡片"
+        "current_status": f"正在解析论文... 本次新增 {len(new_cards)} 篇，剩余 {remaining_count} 篇待处理"
     }

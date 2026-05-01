@@ -1,5 +1,4 @@
 import arxiv
-from datetime import datetime,timedelta
 from app.graph.state import ResearchState,PaperMetadata
 
 # 抓取论文节点
@@ -22,7 +21,7 @@ def fetch_arxiv_node(state:ResearchState):
     for query in current_queries:
         search = arxiv.Search(
             query=query,
-            max_results=10,
+            max_results=50,
             sort_by=arxiv.SortCriterion.SubmittedDate
         )
         
