@@ -1,15 +1,34 @@
-import instructor
 import csv
 import io
+import json
 import re
 from openai import OpenAI
-from pydantic import BaseModel, Field
 from app.graph.state import ResearchState, LLMConfig
 
-# Schema 用于约束 LLM 的本次复合输出
-class ClusterAnalysisResult(BaseModel):
-    taxonomy_markdown: str = Field(...,description="基于所有论文生成的 Markdown 格式分类体系，需包含大类定义及对应的论文标题。")
-    comparison_csv: str = Field(..., description="""标准 CSV 格式字符串。表头必须严格按照以下顺序：Title, Method, Complexity, Scenarios, Pros_and_Cons, Is_Data_Driven""")
+
+def _extract_json_object(text: str) -> str:
+    if not text:
+        return ""
+    # 尝试提取最后一个 JSON 对象块
+    start = text.rfind('{')
+    end = text.rfind('}')
+    if start == -1 or end == -1 or end <= start:
+        return ""
+    candidate = text[start:end+1]
+    try:
+        json.loads(candidate)
+        return candidate
+    except json.JSONDecodeError:
+        # 逐步向前寻找可能的开头
+        for i in range(start, -1, -1):
+            if text[i] == '{':
+                candidate = text[i:end+1]
+                try:
+                    json.loads(candidate)
+                    return candidate
+                except json.JSONDecodeError:
+                    continue
+    return ""
 
 
 def _normalize_non_metadata_text(text: str) -> str:
@@ -130,49 +149,72 @@ def cluster_analysis_node(state: ResearchState):
         })
 
     # 初始化客户端
-    client = instructor.from_openai(OpenAI(
+    client = OpenAI(
         base_url=LLMConfig.BASE_URL,
         api_key=LLMConfig.API_KEY
-    ))
+    )
 
     try:
         # 调用 LLM 进行跨论文的横向对比与纵向聚类
         response = client.chat.completions.create(
             model=LLMConfig.MODEL_NAME,
-            response_model=ClusterAnalysisResult,
             messages=[
                 {
-                    "role": "system", 
+                    "role": "system",
                     "content": """你是一位精通文献综述的学术专家。请根据提供的论文数据完成：
 
-                    全局语言要求：
-                    - 除论文元数据外，所有说明文字均使用中文输出。
-                    - 论文元数据（如论文标题、作者名、arXiv ID、数据集名、模型专有名词）保持原文，不要翻译。
-                          - 对比表中 Is_Data_Driven 字段使用“是/否”，不要使用 Yes/No。
-                          - 对比表中 Complexity、Scenarios、Pros_and_Cons 的解释文本必须使用中文。
-                    
-                    1. 构建 Taxonomy：归纳 3-5 个核心研究方向，使用 Markdown 标题级联。
-                    2. 构建方法对比表 (CSV)：
-                       - Title: 论文标题
-                       - Method: 核心算法/方法
-                       - Complexity: 分析复杂度或计算开销 (如 O(n^2), High, Low)
-                       - Scenarios: 适用场景 (如 移动端, 大规模集群, 医疗等)
-                       - Pros_and_Cons: 优缺点总结
-                       - Is_Data_Driven: 是否数据驱动 (填 Yes/No)
-                    
-                    注意：CSV 必须是标准格式，若字段内包含逗号，请务必使用双引号包裹该字段。"""
+                                1. 构建 Taxonomy：归纳 3-5 个核心研究方向，使用 Markdown 标题级联。
+                                2. 构建方法对比表 (CSV)：
+                                - Title: 论文标题
+                                - Method: 核心算法/方法
+                                - Complexity: 分析复杂度或计算开销 (如 O(n^2), High, Low)
+                                - Scenarios: 适用场景 (如 移动端, 大规模集群, 医疗等)
+                                - Pros_and_Cons: 优缺点总结
+                                - Is_Data_Driven: 是否数据驱动 (填 是/否)
+
+                                全局语言要求：
+                                - 除论文元数据外，所有说明文字均使用中文输出。
+                                - 论文元数据（如论文标题、作者名、arXiv ID、数据集名、模型专有名词）保持原文，不要翻译。
+                                - 对比表中 Complexity、Scenarios、Pros_and_Cons 的解释文本必须使用中文。
+
+                                请在最终输出中只返回一个 JSON 对象，包含 taxonomy_markdown 和 comparison_csv 两个字段，不要添加多余文本。"""
                 },
                 {
-                    "role": "user", 
+                    "role": "user",
                     "content": f"以下是 {len(cards)} 篇论文的精炼数据，请进行聚类与对比分析：\n{analysis_context}"
                 }
             ]
         )
 
-        # 将复合结果解析到 ResearchState 的各个属性中
-        normalized_csv = _normalize_comparison_csv(response.comparison_csv)
+        if hasattr(response, 'choices') and response.choices:
+            choice = response.choices[0]
+            if hasattr(choice, 'message') and getattr(choice.message, 'content', None):
+                content = choice.message.content
+            elif getattr(choice, 'content', None):
+                content = choice.content
+            else:
+                content = ""
+        elif isinstance(response, dict):
+            content = response.get('choices', [{}])[0].get('message', {}).get('content', '')
+        else:
+            content = ""
+
+        if not content:
+            raise ValueError('LLM 未返回文本内容')
+
+        json_text = _extract_json_object(content)
+        if not json_text:
+            raise ValueError(f'无法解析 LLM 输出 JSON，原始内容：{content[:1000]}')
+
+        parsed = json.loads(json_text)
+        taxonomy_md = parsed.get('taxonomy_markdown', '').strip()
+        comparison_csv = parsed.get('comparison_csv', '').strip()
+        if not taxonomy_md and not comparison_csv:
+            raise ValueError(f'LLM 返回 JSON 但字段为空，原始内容：{content[:1000]}')
+
+        normalized_csv = _normalize_comparison_csv(comparison_csv)
         return {
-            "taxonomy_md": response.taxonomy_markdown,
+            "taxonomy_md": taxonomy_md,
             "comparison_table_csv": normalized_csv,
             "current_status": f"分类体系与方法对比表已生成，共分析 {len(cards)} 篇论文"
         }

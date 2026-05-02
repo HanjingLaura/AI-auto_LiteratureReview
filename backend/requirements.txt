@@ -7,3 +7,6 @@ python-dotenv==1.2.2
 IPython==9.13.0
 graphviz==0.21
 pygraphviz==1.14
+fastapi==0.111.2
+uvicorn==0.24.0
+typing_extensions==4.8.0
