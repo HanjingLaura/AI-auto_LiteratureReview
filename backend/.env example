@@ -1,0 +1,10 @@
+# 百炼
+API_KEY = 
+BASE_URL = 
+MODEL_NAME = 
+
+# 本地模型
+USE_LOCAL_LLM = false
+LOCAL_API_KEY = ollama
+LOCAL_BASE_URL = 
+LOCAL_MODEL_NAME = 
