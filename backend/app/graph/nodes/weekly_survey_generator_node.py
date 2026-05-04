@@ -21,15 +21,37 @@ def weekly_survey_generator_node(state: ResearchState):
     def _clean_insights(text: str) -> str:
         if not text:
             return ""
-        lines = [line.strip() for line in text.splitlines()]
+        import re
+
+        lines = [line.rstrip() for line in text.splitlines()]
         cleaned = []
+        # drop heading-only lines, including markdown headings or bold headings
+        heading_re = re.compile(
+            r"^(研究趋势(分析)?|研究空白(与未来方向)?|未来方向|Research\s+Trends|Gaps\s*&\s*Future\s*Directions)$",
+            re.IGNORECASE,
+        )
+
+        def _is_heading_only(raw: str) -> bool:
+            if not raw:
+                return True
+            line = raw.strip()
+            if line == "**":
+                return True
+            # strip markdown heading markers
+            line = line.lstrip("#").strip()
+            # strip bold markers
+            if line.startswith("**") and line.endswith("**"):
+                line = line.strip("*").strip()
+            # remove leading numbering like '3.' or '4.'
+            line = re.sub(r"^\d+\.?\s*", "", line).strip()
+            return bool(heading_re.match(line))
+
         for line in lines:
-            if not line or line == "**":
+            if not line:
                 continue
-            if "研究趋势" in line or "研究空白" in line or "未来方向" in line:
-                # drop redundant headings from model output
+            if _is_heading_only(line):
                 continue
-            cleaned.append(line)
+            cleaned.append(line.strip())
         return "\n".join(cleaned).strip()
 
     try:
@@ -39,21 +61,67 @@ def weekly_survey_generator_node(state: ResearchState):
             api_key=LLMConfig.API_KEY
         )
 
-        insight_response = client.chat.completions.create(
+        # 调用一次 LLM 生成“研究趋势分析”小节
+        trends_resp = client.chat.completions.create(
             model=LLMConfig.MODEL_NAME,
+            temperature=0.2,
+            max_tokens=800,
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "你是一位严谨的文献综述撰写者，擅长从分类体系、方法对比和论文卡片中提炼趋势、空白与未来方向。"
-                        "除论文元数据外，所有输出必须使用中文。"
-                        "论文元数据（如论文标题、作者名、arXiv ID、数据集名、模型专有名词）保持原文，不要翻译。"
+                        "你是一位严谨的学术综述撰写者，擅长从分类体系、方法对比和论文卡片中提炼可验证的研究趋势与判断。"
+                        "全部输出必须使用中文（但论文元数据如标题/作者/arXiv ID 等保留原文）。"
                     )
                 },
                 {
                     "role": "user",
-                    "content": f"""请基于以下三部分材料撰写综述中的‘研究趋势分析’与‘研究空白与未来方向’两部分：
+                    "content": f"""任务：请仅生成“研究趋势分析（Research Trends）”小节的内容，要求返回 Markdown 格式的要点列表（1-5 条）。每条要点须包含两部分：
+1) 要点（一句话总结该趋势）；
+2) 支持证据（1-2 句，引用分类体系、方法对比表或论文卡片中的关键信息作为证据）。
 
+输入资料：
+1. 分类体系（Taxonomy）
+{taxonomy}
+
+2. 方法对比表（CSV）
+{csv_data}
+
+3. 论文卡片摘要（仅关键信息）
+{cards}
+
+约束：
+- 只输出《研究趋势分析》小节内容，不要输出其它标题或解释性前言；
+- 使用清晰的编号（1., 2., ...），每个编号下用短段落给出“要点”与“证据”；
+- 风格学术且具体，避免空泛措辞；输出尽量简洁，便于直接拼接进最终报告。
+注意：本小节将作为最终综述的第 3 部分（研究趋势分析），不要出现分类体系或方法对比表的标题。"""
+                }
+            ]
+        )
+        trends = trends_resp.choices[0].message.content or ""
+
+        # 再次调用 LLM 生成“研究空白与未来方向”小节
+        gaps_resp = client.chat.completions.create(
+            model=LLMConfig.MODEL_NAME,
+            temperature=0.2,
+            max_tokens=1000,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "你是一位面向工程与研究的综述作者，擅长提出可执行的研究方向与实验设计，并能将建议具体化为可验证的步骤。"
+                        "所有输出使用中文，论文元数据保留原文。"
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"""任务：请仅生成“研究空白与未来方向（Gaps & Future Directions）”小节，要求识别并描述至少两个清晰的研究空白，并为每个空白提供：
+
+- 问题陈述（1-2 句，明确限定研究问题）
+- 建议技术路线要点（分项列出 3-5 个关键步骤或方法组件）
+- 验证方案（推荐合适的数据集、评价指标与实验设计要点）
+
+输入资料：
 1. 分类体系（Taxonomy）
 {taxonomy}
 
@@ -63,16 +131,16 @@ def weekly_survey_generator_node(state: ResearchState):
 3. 论文卡片摘要
 {cards}
 
-要求：
-0. 除论文元数据外，全文使用中文；论文元数据保持原文不翻译。
-1. 先总结当前研究路线的总体演进趋势，明确从什么到什么的变化。
-2. 再指出至少两个明确的研究空白，并提出具有可执行性的原创方向。
-3. 风格要像正式课程作业中的学术综述，避免空泛套话。
-4. 输出内容请按‘趋势分析’和‘未来方向’两个小节组织。"""
+约束：
+- 每个研究方向必须包含“原创观点”，不要复述已有工作；
+- 每个研究方向请使用子标题或编号分开，并严格按照“问题陈述 / 技术路线要点 / 验证方案”结构输出；
+- 输出尽量具体、具有可实施性，避免泛化建议；
+- 不要输出额外的解释或总结段落，便于直接拼接进最终报告。
+注意：本小节将作为最终综述的第 4 部分（研究空白与未来方向），必须体现原创观点。"""
                 }
             ]
         )
-        insights = insight_response.choices[0].message.content or ""
+        gaps = gaps_resp.choices[0].message.content or ""
 
         # 组装最终 Markdown
         current_date = datetime.now().strftime("%Y-%m-%d")
@@ -121,12 +189,12 @@ def weekly_survey_generator_node(state: ResearchState):
 ---
 
 ## 3. 研究趋势分析 (Research Trends)
-{_clean_insights(insights.split('未来方向')[0] if '未来方向' in insights else insights)}
+{_clean_insights(trends)}
 
 ---
 
 ## 4. 研究空白与未来方向 (Gaps & Future Directions)
-{_clean_insights(insights.split('未来方向')[-1] if '未来方向' in insights else "（详见上文趋势推演）")}
+{_clean_insights(gaps)}
 
 ---
 

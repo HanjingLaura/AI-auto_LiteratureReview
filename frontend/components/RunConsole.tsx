@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
-import { trimTrailingFragment } from "../lib/utils";
+import { downloadText, trimTrailingFragment } from "../lib/utils";
 
 export default function RunConsole() {
   const { startTask, latestTaskId, getResults } = useTask();
@@ -44,10 +44,8 @@ export default function RunConsole() {
     return { pct: 0, label: "未开始" };
   }, [result]);
 
-  const digestHtml = useMemo(() => {
-    const cleaned = trimTrailingFragment(result?.digest || "");
-    return cleaned ? marked.parse(cleaned) : "";
-  }, [result]);
+  const digestText = useMemo(() => trimTrailingFragment(result?.digest || ""), [result]);
+  const digestHtml = useMemo(() => (digestText ? marked.parse(digestText) : ""), [digestText]);
   const history = result?.statusHistory || [];
 
   async function handleRun(e?: React.FormEvent) {
@@ -109,6 +107,15 @@ export default function RunConsole() {
 
       <section className="section">
         <h2>综述报告 (Markdown)</h2>
+        <button
+          className="button"
+          onClick={() => {
+            if (!digestText) return;
+            downloadText(`weekly-digest-${runningTask || latestTaskId || "latest"}.md`, digestText, "text/markdown");
+          }}
+        >
+          下载 MD
+        </button>
         {digestHtml ? (
           <div className="markdown" dangerouslySetInnerHTML={{ __html: digestHtml }} />
         ) : (
