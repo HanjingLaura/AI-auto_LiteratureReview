@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
 
@@ -95,9 +95,9 @@ export default function GraphRagView() {
 
   return (
     <div>
-      <header className="header">
-        <h2>GraphRAG 每周综述</h2>
-        <p className="mono">关键词: GraphRAG</p>
+      <header className="page-header">
+        <h1 className="title">GraphRAG 每周综述</h1>
+        <p className="subtitle">关键词: GraphRAG</p>
       </header>
 
       <section className="section">

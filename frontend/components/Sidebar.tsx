@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react";
-
 export default function Sidebar({ selected, onSelect }: { selected: number; onSelect: (n: number) => void }) {
   return (
     <aside className="sidebar">
@@ -14,6 +12,9 @@ export default function Sidebar({ selected, onSelect }: { selected: number; onSe
           Data & Table
         </button>
         <button className={`nav-item ${selected === 3 ? "active" : ""}`} onClick={() => onSelect(3)}>
+          Graph Flow
+        </button>
+        <button className={`nav-item ${selected === 4 ? "active" : ""}`} onClick={() => onSelect(4)}>
           GraphRAG Weekly
         </button>
       </nav>

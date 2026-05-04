@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
 
@@ -88,12 +88,6 @@ function normalizeRows(rows: string[][]): string[][] {
   });
 }
 
-function limitLines(text: string, maxLines: number): string {
-  if (!text) return "";
-  const lines = text.split(/\r?\n/);
-  return lines.slice(0, maxLines).join("\n");
-}
-
 export default function PapersView() {
   const { latestTaskId, getResults } = useTask();
   const taskId = latestTaskId;
@@ -107,9 +101,8 @@ export default function PapersView() {
   const cardsJsonPreview = useMemo(() => JSON.stringify(previewCards, null, 2), [previewCards]);
   const cardsJsonExport = useMemo(() => JSON.stringify(fullCards, null, 2), [fullCards]);
 
-  const taxonomyPreview = useMemo(() => limitLines(res?.taxonomyMd || "", 5), [res]);
-  const taxonomyExport = useMemo(() => res?.taxonomyMd || "", [res]);
-  const taxonomyHtml = useMemo(() => (taxonomyPreview ? marked.parse(taxonomyPreview) : ""), [taxonomyPreview]);
+  const taxonomyFull = useMemo(() => res?.taxonomyMd || "", [res]);
+  const taxonomyHtml = useMemo(() => (taxonomyFull ? marked.parse(taxonomyFull) : ""), [taxonomyFull]);
 
   const rawRows = useMemo(() => parseCsv(res?.comparisonCsv || ""), [res]);
   const csvRows = useMemo(() => normalizeRows(rawRows), [rawRows]);
@@ -127,8 +120,9 @@ export default function PapersView() {
 
   return (
     <div>
-      <header className="header">
-        <h2>论文数据与导出</h2>
+      <header className="page-header">
+        <h1 className="title">论文数据与导出</h1>
+        <p className="subtitle">Metadata, cards, taxonomy, and comparison table</p>
       </header>
 
       <section className="section">
@@ -170,7 +164,7 @@ export default function PapersView() {
         )}
         <button
           className="button"
-          onClick={() => download(`taxonomy-${taskId || "none"}.md`, taxonomyExport, "text/markdown")}
+          onClick={() => download(`taxonomy-${taskId || "none"}.md`, taxonomyFull, "text/markdown")}
         >
           下载 MD
         </button>

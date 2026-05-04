@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
 
@@ -79,11 +79,8 @@ export default function RunConsole() {
 
   return (
     <main className="page">
-      <header className="header">
-        <div>
-          <p className="eyebrow">LangGraph workflow</p>
-          <h1 className="title">AI Literature Review</h1>
-        </div>
+      <header className="page-header">
+        <h1 className="title">AI Literature Review</h1>
         <p className="subtitle">Automated Literature Review System Based on LangGraph</p>
       </header>
 

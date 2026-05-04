@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { runTask as apiRunTask, fetchStatus as apiFetchStatus, fetchPaperCards, fetchRawPapers, fetchAnalysis, fetchDigest } from "../lib/api";
 
 type ResultSet = {

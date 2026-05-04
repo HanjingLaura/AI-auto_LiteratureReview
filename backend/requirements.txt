@@ -4,9 +4,6 @@ langgraph==1.1.10
 openai==2.33.0
 pydantic==2.13.3
 python-dotenv==1.2.2
-IPython==9.13.0
-graphviz==0.21
-pygraphviz==1.14
 fastapi==0.111.2
 uvicorn==0.24.0
 typing_extensions==4.8.0

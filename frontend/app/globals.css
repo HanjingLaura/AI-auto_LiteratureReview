@@ -29,7 +29,8 @@ body {
   gap: 28px;
 }
 
-.header {
+.header,
+.page-header {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -257,6 +258,21 @@ body {
   grid-template-columns: 120px 1fr;
   gap: 6px 12px;
   font-size: 13px;
+}
+
+.diagram-container {
+  background: #fff;
+  border: 1px solid #000;
+  padding: 16px;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.diagram svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 .card dt {

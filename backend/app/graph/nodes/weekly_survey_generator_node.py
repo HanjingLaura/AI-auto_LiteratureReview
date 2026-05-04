@@ -80,9 +80,9 @@ def weekly_survey_generator_node(state: ResearchState):
         query_text = ", ".join([q for q in queries if q])
         final_report = f"""# 学术综述报告
 
-    **关键词**: {query_text or "-"}
-    **生成日期**: {current_date}
-    **收录样本数**: {len(cards)} 篇
+    关键词: {query_text or "-"}
+    生成日期: {current_date}
+    收录样本数: {len(cards)} 篇
 
 ---
 

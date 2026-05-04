@@ -38,3 +38,7 @@ export function fetchAnalysis(taskId: string) {
 export function fetchDigest(taskId: string) {
   return request(`/api/v1/graph/digest?task_id=${encodeURIComponent(taskId)}`);
 }
+
+export function fetchDiagram() {
+  return request("/api/v1/graph/diagram");
+}

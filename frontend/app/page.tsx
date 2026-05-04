@@ -5,6 +5,7 @@ import { TaskProvider } from "../components/TaskProvider";
 import Sidebar from "../components/Sidebar";
 import RunConsole from "../components/RunConsole";
 import PapersView from "../components/PapersView";
+import GraphView from "../components/GraphView";
 import GraphRagView from "../components/GraphRagView";
 
 export default function Page() {
@@ -17,7 +18,8 @@ export default function Page() {
         <main className="main-content">
           {tab === 1 && <RunConsole />}
           {tab === 2 && <PapersView />}
-          {tab === 3 && <GraphRagView />}
+          {tab === 3 && <GraphView />}
+          {tab === 4 && <GraphRagView />}
         </main>
       </div>
     </TaskProvider>
