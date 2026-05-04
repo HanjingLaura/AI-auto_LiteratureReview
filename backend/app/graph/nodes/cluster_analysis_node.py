@@ -100,9 +100,20 @@ def _normalize_comparison_csv(csv_text: str) -> str:
     normalized_rows = [header]
     data_rows = rows[1:] if len(rows) > 1 else []
     for row in data_rows:
-        cells = list(row[:6])
-        if len(cells) < 6:
-            cells.extend([""] * (6 - len(cells)))
+        if len(row) > 6:
+            tail = row[-1]
+            is_data_driven = _normalize_boolean_zh(tail)
+            if is_data_driven in {"是", "否"}:
+                pros_cons = ", ".join(row[4:-1])
+                cells = list(row[:4]) + [pros_cons, tail]
+            else:
+                cells = list(row[:5]) + [", ".join(row[5:])]
+        elif len(row) == 6:
+            cells = list(row)
+        else:
+            cells = list(row)
+            if len(cells) < 6:
+                cells.extend([""] * (6 - len(cells)))
 
         # Title 视为元数据，保持原文
         title = cells[0]

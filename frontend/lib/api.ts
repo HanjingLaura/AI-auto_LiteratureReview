@@ -27,6 +27,10 @@ export function fetchPaperCards(taskId: string) {
   return request(`/api/v1/graph/paper-cards?task_id=${encodeURIComponent(taskId)}`);
 }
 
+export function fetchRawPapers(taskId: string) {
+  return request(`/api/v1/graph/raw-papers?task_id=${encodeURIComponent(taskId)}`);
+}
+
 export function fetchAnalysis(taskId: string) {
   return request(`/api/v1/graph/analysis?task_id=${encodeURIComponent(taskId)}`);
 }

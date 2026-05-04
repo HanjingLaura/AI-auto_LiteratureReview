@@ -13,9 +13,24 @@ def weekly_survey_generator_node(state: ResearchState):
     """
     生成每周综述节点：按照四个维度生成综述报告
     """
+    queries = state.get("queries",[])
     taxonomy = state.get("taxonomy_md", "暂无分类数据")
     csv_data = state.get("comparison_table_csv", "暂无对比数据")
     cards = state.get("paper_cards", [])
+
+    def _clean_insights(text: str) -> str:
+        if not text:
+            return ""
+        lines = [line.strip() for line in text.splitlines()]
+        cleaned = []
+        for line in lines:
+            if not line or line == "**":
+                continue
+            if "研究趋势" in line or "研究空白" in line or "未来方向" in line:
+                # drop redundant headings from model output
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned).strip()
 
     try:
         # 基于分类体系、对比表和卡片直接生成综述，不再依赖中间 summary 字段
@@ -62,22 +77,21 @@ def weekly_survey_generator_node(state: ResearchState):
         # 组装最终 Markdown
         current_date = datetime.now().strftime("%Y-%m-%d")
         
-        final_report = f"""# 学术综述报告：领域前沿与自动化分析
+        query_text = ", ".join([q for q in queries if q])
+        final_report = f"""# 学术综述报告
 
-**生成日期**: {current_date}
-**收录样本数**: {len(cards)} 篇
+    **关键词**: {query_text or "-"}
+    **生成日期**: {current_date}
+    **收录样本数**: {len(cards)} 篇
 
 ---
 
 ## 1. 分类体系 (Taxonomy)
-> 对应要求：通过聚类分析构建的技术版图
 {taxonomy}
 
 ---
 
 ## 2. 方法对比表 (Methodology Comparison)
-> 对应要求：涵盖复杂度、场景、数据驱动属性等核心维度
-> 详细 CSV 数据已同步导出至本地文件夹
 
 | 论文标题 | 核心方法 | 复杂度 | 适用场景 | 优缺点 | 数据驱动 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -86,9 +100,20 @@ def weekly_survey_generator_node(state: ResearchState):
         parsed_rows = list(csv.reader(io.StringIO((csv_data or "").strip())))
         data_rows = parsed_rows[1:6] if len(parsed_rows) > 1 else []
         for row in data_rows:
-            cells = list(row[:6])
-            if len(cells) < 6:
-                cells.extend([""] * (6 - len(cells)))
+            if len(row) > 6:
+                tail = row[-1]
+                is_data_driven = tail.strip().lower() in {"是", "否", "yes", "no", "true", "false", "1", "0"}
+                if is_data_driven:
+                    pros_cons = ", ".join(row[4:-1])
+                    cells = list(row[:4]) + [pros_cons, tail]
+                else:
+                    cells = list(row[:5]) + [", ".join(row[5:])]
+            elif len(row) == 6:
+                cells = list(row)
+            else:
+                cells = list(row)
+                if len(cells) < 6:
+                    cells.extend([""] * (6 - len(cells)))
             safe_cells = [_escape_markdown_cell(c) for c in cells]
             final_report += "| " + " | ".join(safe_cells) + " |\n"
 
@@ -96,13 +121,12 @@ def weekly_survey_generator_node(state: ResearchState):
 ---
 
 ## 3. 研究趋势分析 (Research Trends)
-{insights.split('未来方向')[0] if '未来方向' in insights else insights}
+{_clean_insights(insights.split('未来方向')[0] if '未来方向' in insights else insights)}
 
 ---
 
 ## 4. 研究空白与未来方向 (Gaps & Future Directions)
-> **核心原创观点**
-{insights.split('未来方向')[-1] if '未来方向' in insights else "（详见上文趋势推演）"}
+{_clean_insights(insights.split('未来方向')[-1] if '未来方向' in insights else "（详见上文趋势推演）")}
 
 ---
 

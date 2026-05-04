@@ -15,7 +15,7 @@ TASK_STORE: Dict[str, dict] = {}
 class GraphRunRequest(BaseModel):
     queries: list[str] = Field(..., description="搜索关键词列表")
 
-
+# 初始化state
 def _build_initial_state(queries: list[str]) -> dict:
     return {
         "queries": queries,
@@ -29,12 +29,13 @@ def _build_initial_state(queries: list[str]) -> dict:
         "weekly_digest": ""
     }
 
-
+# 创建任务
 def _create_task_entry(task_id: str, queries: list[str]) -> None:
     now = datetime.utcnow().isoformat() + "Z"
     TASK_STORE[task_id] = {
         "task_id": task_id,
         "status": "pending",
+        "current_status": "等待执行",
         "queries": queries,
         "result": None,
         "error": None,
@@ -42,8 +43,14 @@ def _create_task_entry(task_id: str, queries: list[str]) -> None:
         "updated_at": now,
     }
 
-
-def _update_task_status(task_id: str, status: str, result: Optional[dict] = None, error: Optional[str] = None) -> None:
+# 更新任务状态
+def _update_task_status(
+    task_id: str,
+    status: str,
+    result: Optional[dict] = None,
+    error: Optional[str] = None,
+    current_status: Optional[str] = None,
+) -> None:
     task = TASK_STORE.get(task_id)
     if not task:
         return
@@ -51,15 +58,38 @@ def _update_task_status(task_id: str, status: str, result: Optional[dict] = None
     task["updated_at"] = datetime.utcnow().isoformat() + "Z"
     task["result"] = result if result is not None else task.get("result")
     task["error"] = error
+    if current_status is not None:
+        task["current_status"] = current_status
 
 
 async def _execute_task(task_id: str, initial_state: dict) -> None:
-    _update_task_status(task_id, "running")
+    _update_task_status(task_id, "running", current_status="执行中")
     try:
-        result = await asyncio.to_thread(workflow.app.invoke, initial_state)
-        _update_task_status(task_id, "completed", result=result)
+        def _run_with_stream() -> dict:
+            final_state: Optional[dict] = None
+            try:
+                for state in workflow.app.stream(initial_state, stream_mode="values"):
+                    if isinstance(state, dict):
+                        current_status = state.get("current_status")
+                        if current_status:
+                            _update_task_status(task_id, "running", current_status=current_status)
+                        final_state = state
+            except Exception:
+                final_state = None
+
+            if final_state is None:
+                final_state = workflow.app.invoke(initial_state)
+            return final_state
+
+        result = await asyncio.to_thread(_run_with_stream)
+        _update_task_status(
+            task_id,
+            "completed",
+            result=result,
+            current_status=(result or {}).get("current_status", "完成"),
+        )
     except Exception as exc:
-        _update_task_status(task_id, "failed", error=str(exc))
+        _update_task_status(task_id, "failed", error=str(exc), current_status="执行失败")
 
 # 启动 Graph 工作流
 @router.post("/run")
@@ -79,6 +109,7 @@ async def get_graph_status(task_id: str):
         "success": True,
         "task_id": task_id,
         "status": task["status"],
+        "current_status": task.get("current_status"),
         "created_at": task["created_at"],
         "updated_at": task["updated_at"],
         "error": task["error"],

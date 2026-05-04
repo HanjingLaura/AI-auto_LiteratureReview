@@ -143,6 +143,50 @@ body {
   transition: width 0.3s ease;
 }
 
+.progress-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.status-steps {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.status-step {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 12px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.status-step.active {
+  background: var(--panel);
+  border-color: var(--fg);
+}
+
+.step-index {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.step-text {
+  line-height: 1.4;
+}
+
 .markdown :is(h1, h2, h3, h4) {
   margin: 12px 0 6px;
   font-size: 16px;
@@ -165,6 +209,8 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  min-width: 600px; /* allow horizontal scroll on small screens */
+  table-layout: auto;
 }
 
 .table th,
@@ -173,10 +219,20 @@ body {
   padding: 6px 8px;
   text-align: left;
   vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .table th {
   background: var(--panel);
+}
+
+.code-block {
+  max-height: 280px;
+  overflow: auto;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  padding: 12px;
 }
 
 .card-grid {
@@ -210,4 +266,54 @@ body {
 .card dd {
   margin: 0;
   color: var(--muted);
+}
+
+/* App shell / sidebar */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 200px;
+  border-right: 1px solid var(--border);
+  padding: 24px 12px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar .brand {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-item {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  background: var(--fg);
+  color: #fff;
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px;
+}
+
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .main-content { padding: 12px; }
 }
