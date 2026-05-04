@@ -3,18 +3,7 @@
 import { useMemo } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
-
-function download(filename: string, content: string, type = "text/plain") {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+import { downloadText } from "../lib/utils";
 
 function parseCsv(text: string): string[][] {
   if (!text.trim()) return [];
@@ -134,7 +123,7 @@ export default function PapersView() {
         )}
         <button
           className="button"
-          onClick={() => download(`metadata-${taskId || "none"}.json`, metaJsonExport, "application/json")}
+          onClick={() => downloadText(`metadata-${taskId || "none"}.json`, metaJsonExport, "application/json")}
         >
           下载 JSON
         </button>
@@ -149,7 +138,7 @@ export default function PapersView() {
         )}
         <button
           className="button"
-          onClick={() => download(`paper-cards-${taskId || "none"}.json`, cardsJsonExport, "application/json")}
+          onClick={() => downloadText(`paper-cards-${taskId || "none"}.json`, cardsJsonExport, "application/json")}
         >
           下载 JSON
         </button>
@@ -164,7 +153,7 @@ export default function PapersView() {
         )}
         <button
           className="button"
-          onClick={() => download(`taxonomy-${taskId || "none"}.md`, taxonomyFull, "text/markdown")}
+          onClick={() => downloadText(`taxonomy-${taskId || "none"}.md`, taxonomyFull, "text/markdown")}
         >
           下载 MD
         </button>
@@ -198,7 +187,7 @@ export default function PapersView() {
         )}
         <button
           className="button"
-          onClick={() => download(`comparison-${taskId || "none"}.csv`, csvExportText, "text/csv")}
+          onClick={() => downloadText(`comparison-${taskId || "none"}.csv`, csvExportText, "text/csv")}
         >
           下载 CSV
         </button>

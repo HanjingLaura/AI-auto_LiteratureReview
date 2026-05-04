@@ -3,23 +3,7 @@
 import { useState, useMemo } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
-
-function trimTrailingFragment(text: string): string {
-  if (!text) return text;
-  const trimmed = text.trim();
-  const lastChar = trimmed[trimmed.length - 1];
-  if (/[。.!?！？]$/.test(lastChar)) return trimmed;
-  const lastStop = Math.max(
-    trimmed.lastIndexOf("。"),
-    trimmed.lastIndexOf("."),
-    trimmed.lastIndexOf("!"),
-    trimmed.lastIndexOf("?"),
-    trimmed.lastIndexOf("！"),
-    trimmed.lastIndexOf("？")
-  );
-  if (lastStop > 0) return trimmed.slice(0, lastStop + 1);
-  return trimmed;
-}
+import { trimTrailingFragment } from "../lib/utils";
 
 export default function RunConsole() {
   const { startTask, latestTaskId, getResults } = useTask();

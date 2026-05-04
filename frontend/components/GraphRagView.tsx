@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { useTask } from "./TaskProvider";
+import { downloadText, trimTrailingFragment } from "../lib/utils";
 
 const STORAGE_KEY = "graphRagTask";
 const STORAGE_DIGEST_KEY = "graphRagDigest";
@@ -60,37 +61,13 @@ export default function GraphRagView() {
   }, [res]);
   const digestHtml = useMemo(() => {
     const text = res?.digest || cachedDigest || "";
-    if (!text) return "";
-    const trimmed = text.trim();
-    const lastChar = trimmed[trimmed.length - 1];
-    if (/[。.!?！？]$/.test(lastChar)) return marked.parse(trimmed);
-    const lastStop = Math.max(
-      trimmed.lastIndexOf("。"),
-      trimmed.lastIndexOf("."),
-      trimmed.lastIndexOf("!"),
-      trimmed.lastIndexOf("?"),
-      trimmed.lastIndexOf("！"),
-      trimmed.lastIndexOf("？")
-    );
-    const cleaned = lastStop > 0 ? trimmed.slice(0, lastStop + 1) : trimmed;
-    return marked.parse(cleaned);
+    const cleaned = trimTrailingFragment(text);
+    return cleaned ? marked.parse(cleaned) : "";
   }, [res, cachedDigest]);
 
   const digestText = useMemo(() => {
     const text = res?.digest || cachedDigest || "";
-    if (!text) return "";
-    const trimmed = text.trim();
-    const lastChar = trimmed[trimmed.length - 1];
-    if (/[。.!?！？]$/.test(lastChar)) return trimmed;
-    const lastStop = Math.max(
-      trimmed.lastIndexOf("。"),
-      trimmed.lastIndexOf("."),
-      trimmed.lastIndexOf("!"),
-      trimmed.lastIndexOf("?"),
-      trimmed.lastIndexOf("！"),
-      trimmed.lastIndexOf("？")
-    );
-    return lastStop > 0 ? trimmed.slice(0, lastStop + 1) : trimmed;
+    return trimTrailingFragment(text);
   }, [res, cachedDigest]);
 
   return (
@@ -106,15 +83,7 @@ export default function GraphRagView() {
           className="button"
           onClick={() => {
             if (!digestText) return;
-            const blob = new Blob([digestText], { type: "text/markdown" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `graphrag-${taskId || "latest"}.md`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
+            downloadText(`graphrag-${taskId || "latest"}.md`, digestText, "text/markdown");
           }}
         >
           导出 Markdown
