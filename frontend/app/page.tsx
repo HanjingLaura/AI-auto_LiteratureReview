@@ -6,7 +6,7 @@ import Sidebar from "../components/Sidebar";
 import RunConsole from "../components/RunConsole";
 import PapersView from "../components/PapersView";
 import GraphView from "../components/GraphView";
-import GraphRagView from "../components/GraphRagView";
+import KeyWordView from "../components/KeyWordView"; 
 
 export default function Page() {
   const [tab, setTab] = useState<number>(1);
@@ -19,7 +19,7 @@ export default function Page() {
           {tab === 1 && <RunConsole />}
           {tab === 2 && <PapersView />}
           {tab === 3 && <GraphView />}
-          {tab === 4 && <GraphRagView />}
+          {tab === 4 && <KeyWordView />}
         </main>
       </div>
     </TaskProvider>

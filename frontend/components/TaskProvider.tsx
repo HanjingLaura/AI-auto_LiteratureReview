@@ -13,6 +13,7 @@ type ResultSet = {
   current_status?: string;
   statusHistory?: string[];
   error?: string | null;
+  error_log?: string[];
 };
 
 type TaskContextType = {
@@ -88,7 +89,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
                     status,
                     current_status,
                     statusHistory: updateHistory(prev, current_status),
-                    error: s?.error || "failed",
+                    error: s?.error || (s?.error_log?.join('\n') || "failed"),
+                    error_log: s?.error_log,
                   },
                 };
               });
@@ -126,6 +128,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
               status: "failed",
               current_status: "",
               error: (e as any)?.message || "poll error",
+                    error_log: [(e as any)?.message || "poll error"],
             },
           }));
         }

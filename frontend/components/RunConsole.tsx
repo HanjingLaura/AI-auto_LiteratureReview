@@ -102,6 +102,16 @@ export default function RunConsole() {
             </div>
           ) : null}
           {result?.error ? <p className="mono">{result.error}</p> : null}
+          {result?.error_log && result.error_log.length > 0 && (
+            <div className="error-log">
+              <h3>错误日志:</h3>
+              <ul>
+                {result.error_log.map((error, index) => (
+                  <li key={index} className="mono">{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       </section>
 

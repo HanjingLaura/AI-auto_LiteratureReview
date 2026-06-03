@@ -15,7 +15,7 @@ export default function Sidebar({ selected, onSelect }: { selected: number; onSe
           Graph Flow
         </button>
         <button className={`nav-item ${selected === 4 ? "active" : ""}`} onClick={() => onSelect(4)}>
-          GraphRAG Weekly
+          KeyWord Weekly
         </button>
       </nav>
     </aside>

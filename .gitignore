@@ -64,3 +64,6 @@ pnpm-debug.log*
 # Misc
 .sass-cache/
 .cache/
+
+# Claude
+.claude
